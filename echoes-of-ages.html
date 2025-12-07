@@ -145,12 +145,14 @@
             const hiddenPlatform1 = this.add.rectangle(180, 350, 60, 15, 0xffffff, 0.3);
             this.physics.add.existing(hiddenPlatform1, true);
             hiddenPlatforms.add(hiddenPlatform1);
-            hiddenPlatform1.body.checkCollision.none = true; // Start disabled
+            // Disable collision by setting checkCollision.none to true (Phaser's collision disable mechanism)
+            hiddenPlatform1.body.checkCollision.none = true;
             
             const hiddenPlatform2 = this.add.rectangle(260, 350, 60, 15, 0xffffff, 0.3);
             this.physics.add.existing(hiddenPlatform2, true);
             hiddenPlatforms.add(hiddenPlatform2);
-            hiddenPlatform2.body.checkCollision.none = true; // Start disabled
+            // Disable collision by setting checkCollision.none to true (Phaser's collision disable mechanism)
+            hiddenPlatform2.body.checkCollision.none = true;
 
             // Create movable crates (Adult can push)
             crates = this.physics.add.group();
@@ -302,7 +304,9 @@
             ageText.setText('Age: ' + props.name);
 
             // Update hidden platforms visibility and collision based on age
-            hiddenPlatforms.children.entries.forEach(platform => {
+            const hiddenPlatformArray = hiddenPlatforms.getChildren();
+            for (let i = 0; i < hiddenPlatformArray.length; i++) {
+                const platform = hiddenPlatformArray[i];
                 if (newAge === 'elder') {
                     platform.setAlpha(0.8); // More visible
                     platform.body.checkCollision.none = false; // Enable collision
@@ -310,18 +314,18 @@
                     platform.setAlpha(0.3); // Very faint
                     platform.body.checkCollision.none = true; // Disable collision
                 }
-            });
+            }
 
             // Crate pushing (Adult only)
-            if (newAge === 'adult') {
-                crates.children.entries.forEach(crate => {
+            const crateArray = crates.getChildren();
+            for (let i = 0; i < crateArray.length; i++) {
+                const crate = crateArray[i];
+                if (newAge === 'adult') {
                     crate.body.setImmovable(false);
                     crate.body.setMass(5);
-                });
-            } else {
-                crates.children.entries.forEach(crate => {
+                } else {
                     crate.body.setImmovable(true); // Can't push as Child or Elder
-                });
+                }
             }
         }
 
@@ -350,7 +354,7 @@
             switchAge('adult');
 
             // Reset crates to original positions
-            const crateArray = crates.children.entries;
+            const crateArray = crates.getChildren();
             if (crateArray[0]) {
                 crateArray[0].setPosition(600, 520);
                 crateArray[0].body.setVelocity(0, 0);
