@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echoes of Ages - Puzzle Platformer</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+        }
+        #game-container {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    
+    <script>
+        // Game configuration
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            parent: 'game-container',
+            backgroundColor: '#1a1a2e',
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    gravity: { y: 800 },
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        const game = new Phaser.Game(config);
+
+        // Game state
+        let player;
+        let currentAge = 'adult'; // 'child', 'adult', 'elder'
+        let platforms;
+        let hiddenPlatforms;
+        let crates;
+        let cursors;
+        let wasd;
+        let numberKeys;
+        let ageText;
+        let timerText;
+        let controlsText;
+        let timeRemaining = 60;
+        let timerEvent;
+
+        // Age properties
+        const ageProperties = {
+            child: {
+                color: 0x00ff00,
+                width: 20,
+                height: 20,
+                speed: 250,
+                jumpPower: 300,
+                name: 'Child'
+            },
+            adult: {
+                color: 0x0066ff,
+                width: 30,
+                height: 40,
+                speed: 180,
+                jumpPower: 450,
+                name: 'Adult'
+            },
+            elder: {
+                color: 0x888888,
+                width: 30,
+                height: 35,
+                speed: 120,
+                jumpPower: 250,
+                name: 'Elder'
+            }
+        };
+
+        function preload() {
+            // Empty - using geometric shapes only
+        }
+
+        function create() {
+            // Create static platforms group
+            platforms = this.physics.add.staticGroup();
+
+            // Floor
+            const floor = this.add.rectangle(400, 580, 800, 40, 0x4a4a4a);
+            this.physics.add.existing(floor, true);
+            platforms.add(floor);
+
+            // Main platform (left side)
+            const leftPlatform = this.add.rectangle(150, 450, 250, 20, 0x4a4a4a);
+            this.physics.add.existing(leftPlatform, true);
+            platforms.add(leftPlatform);
+
+            // High ledge (requires Adult's high jump)
+            const highLedge = this.add.rectangle(650, 300, 200, 20, 0x4a4a4a);
+            this.physics.add.existing(highLedge, true);
+            platforms.add(highLedge);
+
+            // Narrow tunnel (Child only - low ceiling)
+            const tunnelTop = this.add.rectangle(400, 515, 200, 10, 0x666666);
+            this.physics.add.existing(tunnelTop, true);
+            platforms.add(tunnelTop);
+            
+            const tunnelLeft = this.add.rectangle(290, 550, 10, 60, 0x666666);
+            this.physics.add.existing(tunnelLeft, true);
+            platforms.add(tunnelLeft);
+            
+            const tunnelRight = this.add.rectangle(510, 550, 10, 60, 0x666666);
+            this.physics.add.existing(tunnelRight, true);
+            platforms.add(tunnelRight);
+
+            // Platform before pit
+            const prePitPlatform = this.add.rectangle(100, 350, 100, 20, 0x4a4a4a);
+            this.physics.add.existing(prePitPlatform, true);
+            platforms.add(prePitPlatform);
+
+            // Platform after pit (on right side)
+            const postPitPlatform = this.add.rectangle(350, 350, 100, 20, 0x4a4a4a);
+            this.physics.add.existing(postPitPlatform, true);
+            platforms.add(postPitPlatform);
+
+            // Hidden platforms (Elder only - over the pit)
+            hiddenPlatforms = this.physics.add.group();
+            
+            const hiddenPlatform1 = this.add.rectangle(180, 350, 60, 15, 0xffffff, 0.3);
+            this.physics.add.existing(hiddenPlatform1, true);
+            hiddenPlatforms.add(hiddenPlatform1);
+            // Start with collision disabled (only Elder can use these platforms)
+            hiddenPlatform1.body.enable = false;
+            
+            const hiddenPlatform2 = this.add.rectangle(260, 350, 60, 15, 0xffffff, 0.3);
+            this.physics.add.existing(hiddenPlatform2, true);
+            hiddenPlatforms.add(hiddenPlatform2);
+            // Start with collision disabled (only Elder can use these platforms)
+            hiddenPlatform2.body.enable = false;
+
+            // Create movable crates (Adult can push)
+            crates = this.physics.add.group();
+            
+            const crate1 = this.add.rectangle(600, 520, 40, 40, 0xcc6600);
+            this.physics.add.existing(crate1);
+            crate1.body.setCollideWorldBounds(true);
+            crate1.body.setMass(5); // Heavy
+            crate1.body.setImmovable(false);
+            crates.add(crate1);
+
+            const crate2 = this.add.rectangle(200, 410, 40, 40, 0xcc6600);
+            this.physics.add.existing(crate2);
+            crate2.body.setCollideWorldBounds(true);
+            crate2.body.setMass(5);
+            crate2.body.setImmovable(false);
+            crates.add(crate2);
+
+            // Crates collide with platforms
+            this.physics.add.collider(crates, platforms);
+            this.physics.add.collider(crates, crates);
+
+            // Create player (start as Adult)
+            player = this.add.rectangle(100, 500, 
+                ageProperties.adult.width, 
+                ageProperties.adult.height, 
+                ageProperties.adult.color);
+            this.physics.add.existing(player);
+            player.body.setCollideWorldBounds(true);
+            player.body.setBounce(0);
+
+            // Physics collisions
+            this.physics.add.collider(player, platforms);
+            this.physics.add.collider(player, crates);
+            this.physics.add.collider(player, hiddenPlatforms);
+
+            // Input setup
+            cursors = this.input.keyboard.createCursorKeys();
+            wasd = {
+                up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+                left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+                down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+                right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+            };
+            numberKeys = {
+                one: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ONE),
+                two: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TWO),
+                three: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.THREE)
+            };
+
+            // UI Text
+            ageText = this.add.text(16, 16, 'Age: Adult', {
+                fontSize: '24px',
+                fill: '#ffffff',
+                fontStyle: 'bold',
+                backgroundColor: '#000000',
+                padding: { x: 10, y: 5 }
+            });
+
+            timerText = this.add.text(16, 56, 'Time: 60s', {
+                fontSize: '24px',
+                fill: '#ffffff',
+                fontStyle: 'bold',
+                backgroundColor: '#000000',
+                padding: { x: 10, y: 5 }
+            });
+
+            controlsText = this.add.text(16, 550, 
+                'Controls: Arrow/WASD to move | 1=Child 2=Adult 3=Elder', {
+                fontSize: '14px',
+                fill: '#ffffff',
+                backgroundColor: '#000000',
+                padding: { x: 8, y: 4 }
+            });
+
+            // Age descriptions
+            this.add.text(520, 16, 
+                'Child: Fast, Small, Weak Jump\n' +
+                'Adult: Normal Speed, High Jump, Push Crates\n' +
+                'Elder: Slow, Reveals Hidden Platforms', {
+                fontSize: '12px',
+                fill: '#ffff00',
+                backgroundColor: '#000000',
+                padding: { x: 8, y: 4 }
+            });
+
+            // Timer countdown
+            timerEvent = this.time.addEvent({
+                delay: 1000,
+                callback: updateTimer,
+                callbackScope: this,
+                loop: true
+            });
+
+            // Initialize age-specific properties
+            switchAge('adult');
+        }
+
+        function update() {
+            // Age switching
+            if (Phaser.Input.Keyboard.JustDown(numberKeys.one)) {
+                switchAge('child');
+            } else if (Phaser.Input.Keyboard.JustDown(numberKeys.two)) {
+                switchAge('adult');
+            } else if (Phaser.Input.Keyboard.JustDown(numberKeys.three)) {
+                switchAge('elder');
+            }
+
+            // Movement
+            const props = ageProperties[currentAge];
+            
+            if (cursors.left.isDown || wasd.left.isDown) {
+                player.body.setVelocityX(-props.speed);
+            } else if (cursors.right.isDown || wasd.right.isDown) {
+                player.body.setVelocityX(props.speed);
+            } else {
+                player.body.setVelocityX(0);
+            }
+
+            // Jump
+            if ((cursors.up.isDown || wasd.up.isDown) && player.body.touching.down) {
+                player.body.setVelocityY(-props.jumpPower);
+            }
+        }
+
+        function switchAge(newAge) {
+            if (currentAge === newAge) return;
+
+            currentAge = newAge;
+            const props = ageProperties[newAge];
+
+            // Store current position
+            const x = player.x;
+            const y = player.y;
+            const velocityX = player.body.velocity.x;
+            const velocityY = player.body.velocity.y;
+
+            // Update player appearance
+            player.setFillStyle(props.color);
+            player.setSize(props.width, props.height);
+            player.displayWidth = props.width;
+            player.displayHeight = props.height;
+
+            // Restore position and velocity
+            player.setPosition(x, y);
+            player.body.setVelocity(velocityX, velocityY);
+
+            // Update UI
+            ageText.setText('Age: ' + props.name);
+
+            // Update hidden platforms visibility and collision based on age
+            const hiddenPlatformArray = hiddenPlatforms.getChildren();
+            for (let i = 0; i < hiddenPlatformArray.length; i++) {
+                const platform = hiddenPlatformArray[i];
+                if (newAge === 'elder') {
+                    platform.setAlpha(0.8); // More visible
+                    platform.body.enable = true; // Enable collision
+                } else {
+                    platform.setAlpha(0.3); // Very faint
+                    platform.body.enable = false; // Disable collision
+                }
+            }
+
+            // Crate pushing (Adult only)
+            const crateArray = crates.getChildren();
+            for (let i = 0; i < crateArray.length; i++) {
+                const crate = crateArray[i];
+                if (newAge === 'adult') {
+                    crate.body.setImmovable(false);
+                    crate.body.setMass(5);
+                } else {
+                    crate.body.setImmovable(true); // Can't push as Child or Elder
+                }
+            }
+        }
+
+        function updateTimer() {
+            timeRemaining--;
+            timerText.setText('Time: ' + timeRemaining + 's');
+
+            if (timeRemaining <= 10) {
+                timerText.setColor('#ff0000'); // Red warning
+            }
+
+            if (timeRemaining <= 0) {
+                resetLevel();
+            }
+        }
+
+        function resetLevel() {
+            // Reset timer
+            timeRemaining = 60;
+            timerText.setText('Time: 60s');
+            timerText.setColor('#ffffff');
+
+            // Reset player position and age
+            player.setPosition(100, 500);
+            player.body.setVelocity(0, 0);
+            switchAge('adult');
+
+            // Reset crates to original positions
+            const crateArray = crates.getChildren();
+            if (crateArray[0]) {
+                crateArray[0].setPosition(600, 520);
+                crateArray[0].body.setVelocity(0, 0);
+            }
+            if (crateArray[1]) {
+                crateArray[1].setPosition(200, 410);
+                crateArray[1].body.setVelocity(0, 0);
+            }
+        }
+    </script>
+</body>
+</html>
