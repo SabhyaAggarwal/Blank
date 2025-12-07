@@ -145,14 +145,14 @@
             const hiddenPlatform1 = this.add.rectangle(180, 350, 60, 15, 0xffffff, 0.3);
             this.physics.add.existing(hiddenPlatform1, true);
             hiddenPlatforms.add(hiddenPlatform1);
-            // Disable collision by setting checkCollision.none to true (Phaser's collision disable mechanism)
-            hiddenPlatform1.body.checkCollision.none = true;
+            // Start with collision disabled (only Elder can use these platforms)
+            hiddenPlatform1.body.enable = false;
             
             const hiddenPlatform2 = this.add.rectangle(260, 350, 60, 15, 0xffffff, 0.3);
             this.physics.add.existing(hiddenPlatform2, true);
             hiddenPlatforms.add(hiddenPlatform2);
-            // Disable collision by setting checkCollision.none to true (Phaser's collision disable mechanism)
-            hiddenPlatform2.body.checkCollision.none = true;
+            // Start with collision disabled (only Elder can use these platforms)
+            hiddenPlatform2.body.enable = false;
 
             // Create movable crates (Adult can push)
             crates = this.physics.add.group();
@@ -309,10 +309,10 @@
                 const platform = hiddenPlatformArray[i];
                 if (newAge === 'elder') {
                     platform.setAlpha(0.8); // More visible
-                    platform.body.checkCollision.none = false; // Enable collision
+                    platform.body.enable = true; // Enable collision
                 } else {
                     platform.setAlpha(0.3); // Very faint
-                    platform.body.checkCollision.none = true; // Disable collision
+                    platform.body.enable = false; // Disable collision
                 }
             }
 
