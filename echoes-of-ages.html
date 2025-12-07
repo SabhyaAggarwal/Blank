@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Echoes of Ages - Puzzle Platformer</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <!-- Fallback CDN -->
+    <script>
+        if (typeof Phaser === 'undefined') {
+            document.write('<script src="https://unpkg.com/phaser@3.55.2/dist/phaser.min.js"><\/script>');
+        }
+    </script>
     <style>
         body {
             margin: 0;
