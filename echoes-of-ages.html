@@ -70,7 +70,6 @@
         let controlsText;
         let timeRemaining = 60;
         let timerEvent;
-        let canPushCrate = false;
 
         // Age properties
         const ageProperties = {
@@ -250,6 +249,9 @@
                 callbackScope: this,
                 loop: true
             });
+
+            // Initialize age-specific properties
+            switchAge('adult');
         }
 
         function update() {
@@ -277,29 +279,6 @@
             if ((cursors.up.isDown || wasd.up.isDown) && player.body.touching.down) {
                 player.body.setVelocityY(-props.jumpPower);
             }
-
-            // Update hidden platforms visibility and collision based on age
-            hiddenPlatforms.children.entries.forEach(platform => {
-                if (currentAge === 'elder') {
-                    platform.setAlpha(0.8); // More visible
-                    platform.body.checkCollision.none = false; // Enable collision
-                } else {
-                    platform.setAlpha(0.3); // Very faint
-                    platform.body.checkCollision.none = true; // Disable collision
-                }
-            });
-
-            // Crate pushing (Adult only)
-            if (currentAge === 'adult') {
-                crates.children.entries.forEach(crate => {
-                    crate.body.setImmovable(false);
-                    crate.body.setMass(5);
-                });
-            } else {
-                crates.children.entries.forEach(crate => {
-                    crate.body.setImmovable(true); // Can't push as Child or Elder
-                });
-            }
         }
 
         function switchAge(newAge) {
@@ -326,6 +305,29 @@
 
             // Update UI
             ageText.setText('Age: ' + props.name);
+
+            // Update hidden platforms visibility and collision based on age
+            hiddenPlatforms.children.entries.forEach(platform => {
+                if (newAge === 'elder') {
+                    platform.setAlpha(0.8); // More visible
+                    platform.body.checkCollision.none = false; // Enable collision
+                } else {
+                    platform.setAlpha(0.3); // Very faint
+                    platform.body.checkCollision.none = true; // Disable collision
+                }
+            });
+
+            // Crate pushing (Adult only)
+            if (newAge === 'adult') {
+                crates.children.entries.forEach(crate => {
+                    crate.body.setImmovable(false);
+                    crate.body.setMass(5);
+                });
+            } else {
+                crates.children.entries.forEach(crate => {
+                    crate.body.setImmovable(true); // Can't push as Child or Elder
+                });
+            }
         }
 
         function updateTimer() {
